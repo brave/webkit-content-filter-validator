@@ -1,4 +1,4 @@
-CFLAGS = `pkg-config --cflags --libs wpe-webkit-1.1`
+CFLAGS = `pkg-config --cflags --libs wpe-webkit-1.0`
 
 all: webkit-content-filter-validator compile_flags.txt
 

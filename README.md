@@ -10,9 +10,25 @@ To use, input a file in Apple's [JSON content blocker format](https://developer.
 
 `webkit-content-filter-validator` depends on [WebKit WPE](https://wpewebkit.org/).
 
+WebKit WPE is packaged as:
+- `libwpewebkit-1.0-dev` under Ubuntu
+- `wpewebkit` under Arch Linux
+
 ## Building
 
+### Ubuntu 22.04
+
 Run `make webkit-content-filter-validator`.
+
+### Arch Linux
+
+Replace `wpe-webkit-1.0` with `wpe-webkit-1.1` in the Makefile, then proceed as above.
+
+### Docker
+
+```
+docker build -t webkit-content-filter-validator .
+```
 
 ## Running
 
@@ -20,6 +36,21 @@ Check the usage:
 
 ```
 webkit-content-filter-validator --help
+```
+
+### Running under Docker
+
+Making input files accessible to the container's filesystem is complicated.
+The easiest way to pass inputs to the command in the Docker image is through stdin, i.e.:
+
+```
+docker run --rm -i webkit-content-filter-validator < test.json
+```
+
+or,
+
+```
+echo "[{...}]" | docker run --rm -i webkit-content-filter-validator
 ```
 
 ## Developing
