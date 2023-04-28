@@ -1,8 +1,10 @@
 #include <wpe/webkit.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <fcntl.h>
 #define __USE_XOPEN_EXTENDED true
 #include <ftw.h>
@@ -35,7 +37,12 @@ void finishedCallback(WebKitUserContentFilterStore* store, GAsyncResult* res, Fi
 // Returns nonzero and populates `error_msg` if any failure is encountered.
 // Don't forget to free(error_msg) if this returns nonzero.
 int try_compile(void* data, size_t data_size, char** error_msg) {
-    const gchar *storage_path = "./ContentFilterStore.tmp";
+    // append randomness to the storage path so that multiple instances of this
+    // program can run in parallel
+    srand(getpid());
+    int random = rand();
+    gchar storage_path[40];
+    snprintf(storage_path, 40, "./ContentFilterStore.tmp%d", random);
     WebKitUserContentFilterStore* store = webkit_user_content_filter_store_new(storage_path);
 
     FilterSaveData saveData = { NULL, };
