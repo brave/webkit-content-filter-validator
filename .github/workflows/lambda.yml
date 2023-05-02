@@ -67,9 +67,10 @@ jobs:
           IMAGE_TAG: main-${{ github.sha }}
         run: |
           # --cache-from=type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
-          docker buildx build --push --build-arg BASE_IMAGE=${{ steps.build-base-image.outputs.image }} \
+          #  --push
+          docker buildx build --build-arg BASE_IMAGE=${{ steps.build-base-image.outputs.image }} \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
-          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest lambda/
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
           # Cannot use `--cache-to` due to https://github.com/docker/buildx/issues/271
           # Caching to `latest` with inline caching which seems to work
