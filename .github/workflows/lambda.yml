@@ -54,6 +54,7 @@ jobs:
           IMAGE_TAG: base-${{ github.sha }}
         run: |
           docker buildx build --push \
+          --platform linux/amd64 \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
           --cache-from=type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:base-latest \
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:base-latest .
@@ -67,6 +68,7 @@ jobs:
           IMAGE_TAG: lambda-${{ github.sha }}
         run: |
           docker buildx build --push --build-arg BASE_IMAGE=${{ steps.build-base-image.outputs.image }} \
+          --platform linux/amd64 \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
           --cache-from=type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:lambda-latest \
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:lambda-latest lambda/
