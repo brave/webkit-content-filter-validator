@@ -11,8 +11,8 @@ permissions:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    # environment:
-    #   name: ${{ needs.get-environment.outputs.environment }}
+    environment:
+      name: "production"
     steps:
       - name: Git clone the repository
         uses: actions/checkout@v3
@@ -35,41 +35,40 @@ jobs:
     #     with:
     #       registry-type: public
 
-    #   - name: Configure AWS credentials
-    #     uses: aws-actions/configure-aws-credentials@v2
-    #     with:
-    #       role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-    #       role-session-name: github-actions-store-build-push
-    #       aws-region: us-west-2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: github-actions-store-build-push
+          aws-region: us-west-2
 
-    #   - name: Login to Amazon ECR
-    #     id: login-ecr
-    #     uses: aws-actions/amazon-ecr-login@v1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build base image
         id: build-base-image
         env:
-          ECR_REGISTRY: "fakereg" # ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: webkit-content-filter-validator
-          IMAGE_TAG: latest
+          IMAGE_TAG: base-${{ github.sha }}
         run: |
-          #  TODO add caching back
-          docker buildx build \
+          docker buildx build --push \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --cache-from=type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-lambda-image
         env:
-          ECR_REGISTRY: "fakereg" # ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: webkit-content-filter-validator-lambda
-          IMAGE_TAG: main-${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: webkit-content-filter-validator
+          IMAGE_TAG: lambda-${{ github.sha }}
         run: |
-          # --cache-from=type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
-          #  --push
-          docker buildx build --build-arg BASE_IMAGE=${{ steps.build-base-image.outputs.image }} \
+          docker buildx build --push --build-arg BASE_IMAGE=${{ steps.build-base-image.outputs.image }} \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --cache-from=type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest lambda/
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
           # Cannot use `--cache-to` due to https://github.com/docker/buildx/issues/271
