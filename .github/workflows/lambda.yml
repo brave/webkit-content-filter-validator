@@ -60,7 +60,7 @@ jobs:
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:base-latest .
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build lambda image
         id: build-lambda-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -76,22 +76,6 @@ jobs:
           # Cannot use `--cache-to` due to https://github.com/docker/buildx/issues/271
           # Caching to `latest` with inline caching which seems to work
 
-    #   - name: Download task definition
-    #     run: |
-    #       aws ecs describe-task-definition --task-definition store --query taskDefinition > task-definition.json
-
-    #   - name: Fill in the new image ID in the Amazon ECS task definition
-    #     id: task-def
-    #     uses: aws-actions/amazon-ecs-render-task-definition@v1
-    #     with:
-    #       task-definition: task-definition.json
-    #       container-name: store
-    #       image: ${{ steps.build-image.outputs.image }}
-
-    #   - name: Deploy Amazon ECS task definition
-    #     uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-    #     with:
-    #       task-definition: ${{ steps.task-def.outputs.task-definition }}
-    #       service: store
-    #       cluster: store
-    #       wait-for-service-stability: true
+      - name: Update lambda function
+        run: |
+          aws lambda update-function-code --function-name "arn:aws:lambda:us-west-2:332949624758:function:webkit-content-filter-validator" --image-uri ${{ steps.build-lambda-image.outputs.image }}
