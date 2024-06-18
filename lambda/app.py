@@ -12,8 +12,8 @@ def handler(event, context):
     try:
         if event.get('headers', {}).get('content-encoding') == 'application/zstd':
             if event.get('isBase64Encoded', False):
-                # Limit output buffer to 16MB
-                body = dctx.decompress(base64.b64decode(event["body"]), max_output_size=16*1024*1024).decode('utf-8')
+                # Limit output buffer to 64MB
+                body = dctx.decompress(base64.b64decode(event["body"]), max_output_size=64*1024*1024).decode('utf-8')
         else:
             body = event["body"]
         ps = subprocess.run(CMD, text=True, cwd=CWD, check=False, stdout=subprocess.PIPE,
