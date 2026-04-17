@@ -1,0 +1,4 @@
+{
+  "body": "[{\"action\":{\"type\":\"block\"},\"trigger\":{\"url-filter\":\"^[^:]+:(//)?([^/]+.)?connect.facebook.net\",\"unless-domain\":[\"*workplace.com\"],\"load-type\":[\"third-party\"]}}]",
+  "isBase64Encoded": false
+}

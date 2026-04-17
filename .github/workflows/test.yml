@@ -1,0 +1,97 @@
+name: test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Enable containerd image store
+        run: |
+          sudo mkdir -p /etc/docker
+          echo '{ "features": { "containerd-snapshotter": true } }' \
+            | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+          docker info -f '{{ .DriverStatus }}'
+
+      - name: Build base image
+        run: |
+          docker buildx build \
+            --cache-from=type=gha,scope=base \
+            --cache-to=type=gha,mode=max,scope=base \
+            -t webkit-content-filter-validator:test \
+            .
+
+      - name: Base image - valid filter exits 0
+        run: cat test_filter.json | docker run --rm -i webkit-content-filter-validator:test
+
+      - name: Base image - empty filter exits non-zero
+        run: |
+          set +e
+          out=$(echo '[]' | docker run --rm -i webkit-content-filter-validator:test)
+          rc=$?
+          echo "$out"
+          [ "$rc" -ne 0 ] && echo "$out" | grep -q "Empty extension"
+
+      - name: Base image - invalid JSON exits non-zero
+        run: |
+          set +e
+          out=$(echo 'not json' | docker run --rm -i webkit-content-filter-validator:test)
+          rc=$?
+          echo "$out"
+          [ "$rc" -ne 0 ] && echo "$out" | grep -qi "json"
+
+      - name: Build lambda image
+        run: |
+          docker buildx build \
+            --cache-from=type=gha,scope=lambda \
+            --cache-to=type=gha,mode=max,scope=lambda \
+            --build-arg BASE_IMAGE=webkit-content-filter-validator:test \
+            -t webkit-content-filter-validator-lambda:test \
+            lambda/
+
+      - name: Start lambda RIE container
+        run: |
+          docker run -d --name lambda -p 9000:8080 \
+            webkit-content-filter-validator-lambda:test
+
+      - name: Wait for RIE to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS -XPOST \
+                 http://localhost:9000/2015-03-31/functions/function/invocations \
+                 -d '{}' >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "RIE never became ready"
+          docker logs lambda
+          exit 1
+
+      - name: Invoke lambda with test-invoke.json
+        run: |
+          response=$(curl -fsS -XPOST \
+            http://localhost:9000/2015-03-31/functions/function/invocations \
+            -H 'Content-Type: application/json' \
+            -d @lambda/test-invoke.json)
+          echo "$response"
+          echo "$response" | jq -e '.statusCode == 200'
+
+      - name: Lambda container logs
+        if: always()
+        run: docker logs lambda || true
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f lambda || true
