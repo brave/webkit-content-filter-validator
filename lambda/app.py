@@ -2,7 +2,7 @@ import subprocess
 import base64
 import zstandard as zstd
 
-CMD = ["/opt/webkit-content-filter-validator/webkit-content-filter-validator"]
+CMD = ["/usr/local/bin/webkit-content-filter-validator"]
 CWD = "/tmp"  # binary creates temp files, only /tmp is writeable to its UID
 SUCCESS = 0
 

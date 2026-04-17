@@ -1,4 +1,4 @@
-#include <wpe/webkit.h>
+#include <webkit/webkit.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
