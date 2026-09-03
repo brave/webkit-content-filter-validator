@@ -1,4 +1,4 @@
-FROM ubuntu:24.04 AS build
+FROM ubuntu:26.04 AS build
 
 # Snapshot base-image lib filenames BEFORE installing anything,
 # so we can later skip copying libs the runtime stage already has.
@@ -26,7 +26,7 @@ RUN make webkit-content-filter-validator && \
   done
 
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 COPY --from=build /export/ /usr/local/lib/
 COPY --from=build /src/webkit-content-filter-validator /usr/local/bin/
